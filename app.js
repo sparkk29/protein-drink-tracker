@@ -62,23 +62,25 @@
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { dateKey: null, drank: false, history: [] };
+      if (!raw) return { dateKey: null, drank: false, drinkTimestamps: [], history: [] };
       const data = JSON.parse(raw);
       const history = Array.isArray(data.history) ? data.history : [];
+      const drinkTimestamps = Array.isArray(data.drinkTimestamps) ? data.drinkTimestamps : [];
       return {
         dateKey: data.dateKey || null,
         drank: Boolean(data.drank),
+        drinkTimestamps: drinkTimestamps,
         history: history
       };
     } catch (_) {
-      return { dateKey: null, drank: false, history: [] };
+      return { dateKey: null, drank: false, drinkTimestamps: [], history: [] };
     }
   }
 
-  function saveState(dateKey, drank, history) {
+  function saveState(dateKey, drank, history, drinkTimestamps) {
     try {
       const trimmed = (history || []).slice(-HISTORY_MAX_DAYS);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ dateKey, drank, history: trimmed }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ dateKey, drank, drinkTimestamps, history: trimmed }));
     } catch (_) {}
   }
 
@@ -97,7 +99,7 @@
     let history = stored.history || [];
     if (stored.dateKey === dateKey && stored.drank && !history.includes(dateKey)) {
       history = history.concat([dateKey]);
-      saveState(dateKey, true, history);
+      saveState(dateKey, true, history, stored.drinkTimestamps);
     } else if (stored.dateKey === dateKey && !stored.drank) {
       history = history.filter(function (k) { return k !== dateKey; });
     }
@@ -108,12 +110,18 @@
     const dateKey = getDateKey();
     const stored = loadState();
     let history = stored.history || [];
+    let drinkTimestamps = stored.drinkTimestamps || [];
+    
     if (drank) {
       if (!history.includes(dateKey)) history = history.concat([dateKey]);
+      drinkTimestamps = drinkTimestamps.filter(function(ts) { return ts.date !== dateKey; });
+      drinkTimestamps = drinkTimestamps.concat([{ date: dateKey, time: new Date().toLocaleTimeString() }]);
     } else {
       history = history.filter(function (k) { return k !== dateKey; });
+      drinkTimestamps = drinkTimestamps.filter(function(ts) { return ts.date !== dateKey; });
     }
-    saveState(dateKey, drank, history);
+    
+    saveState(dateKey, drank, history, drinkTimestamps);
   }
 
   function getStreak() {
@@ -144,6 +152,7 @@
 
   function updateUI(drank) {
     const dateKey = getDateKey();
+    const stored = loadState();
     const flexed = document.getElementById('arm-flexed');
     const weak = document.getElementById('arm-weak');
     const btn = document.getElementById('toggle-btn');
@@ -151,6 +160,7 @@
     const title = document.getElementById('app-title');
     const dateEl = document.getElementById('date-text');
     const streakEl = document.getElementById('streak-text');
+    const lastTimeEl = document.getElementById('last-time');
 
     const texts = translations[currentLang];
 
@@ -172,6 +182,18 @@
       streakEl.textContent = streak > 0
         ? (streak === 1 ? '1 day streak!' : streak + ' day streak!')
         : '';
+    }
+    if (lastTimeEl) {
+      const timestamps = stored.drinkTimestamps || [];
+      if (timestamps.length > 0) {
+        const recent = timestamps.slice().sort(function(a, b) { return b.date.localeCompare(a.date); })[0];
+        const isToday = recent.date === dateKey;
+        lastTimeEl.textContent = isToday 
+          ? `Last drank at: ${recent.time}`
+          : `Last drank: ${formatDisplayDate(recent.date)} at ${recent.time}`;
+      } else {
+        lastTimeEl.textContent = '';
+      }
     }
   }
 
