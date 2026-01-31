@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,9 +9,19 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.json">
 </head>
+
 <body>
   <main class="app">
-    <h1 class="title">Protein Drink Tracker</h1>
+
+    <div class="language-picker">
+      <select id="lang-select">
+        <option value="en">English</option>
+        <option value="fr">Français</option>
+        <!-- <option value="nl">Nederlands</option> -->
+      </select>
+    </div>
+
+    <h1 id="app-title" class="title">Protein Drink Tracker</h1>
 
     <div class="graphic-container" aria-hidden="true">
       <!-- Drank: e.g. Arnold / flexed – use images/drank.jpg -->
@@ -27,4 +38,5 @@
   </main>
   <script src="app.js"></script>
 </body>
+
 </html>
