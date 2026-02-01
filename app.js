@@ -131,7 +131,11 @@
     try {
       // Using BigDataCloud's free reverse geocoding API (client-side capable)
       const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+      if (!res.ok) throw new Error('HTTP Error ' + res.status);
+
       const data = await res.json();
+      if (!data || typeof data !== 'object') throw new Error('Invalid response data');
+
       return data.city || data.locality || 'Location Found';
     } catch (e) {
       console.error('City fetch failed', e);
@@ -159,41 +163,52 @@
   }
 
   /* --- Clock Functions --- */
+  function initWorldClocks() {
+    const container = document.getElementById('world-clocks');
+    if (container) {
+      let html = '';
+      WORLD_CITIES.forEach((city, index) => {
+        html += `
+          <div class="world-clock-item">
+            <span class="city-name">${city.name}</span>
+            <span class="city-time" id="world-clock-time-${index}">--:--</span>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+  }
+
+
   function updateClock() {
     const now = new Date();
 
-    // Main Clock (Local) - Modernized with Spans
-    const mainClock = document.getElementById('main-clock');
-    if (mainClock) {
+    // Main Clock (Local)
+    const timeEl = document.getElementById('clock-time');
+    const secEl = document.getElementById('clock-seconds');
+
+    if (timeEl && secEl) {
       const h = String(now.getHours()).padStart(2, '0');
       const m = String(now.getMinutes()).padStart(2, '0');
       const s = String(now.getSeconds()).padStart(2, '0');
 
-      mainClock.innerHTML = `
-        <span class="clock-time">${h}:${m}</span><span class="clock-seconds">${s}</span>
-      `;
+      timeEl.textContent = `${h}:${m}`;
+      secEl.textContent = s;
     }
 
     // World Clocks
-    const container = document.getElementById('world-clocks');
-    if (container) {
-      let html = '';
-      WORLD_CITIES.forEach(city => {
+    WORLD_CITIES.forEach((city, index) => {
+      const el = document.getElementById(`world-clock-time-${index}`);
+      if (el) {
         const timeStr = now.toLocaleTimeString('en-US', {
           timeZone: city.timeZone,
           hour: '2-digit',
           minute: '2-digit',
           hour12: false
         });
-        html += `
-          <div class="world-clock-item">
-            <span class="city-name">${city.name}</span>
-            <span class="city-time">${timeStr}</span>
-          </div>
-        `;
-      });
-      container.innerHTML = html;
-    }
+        el.textContent = timeStr;
+      }
+    });
   }
 
   /* --- Theme Functions --- */
@@ -283,6 +298,7 @@
 
     // CLOCK INIT
     initLocation();
+    initWorldClocks();
     updateClock();
     setInterval(updateClock, 1000);
 
